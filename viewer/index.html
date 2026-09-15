@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <title>My World Map</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.1/openseadragon.min.js"></script>
+
+    <style>
+
+        html, body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #222;
+        }
+
+        #viewer {
+            width: 100%;
+            height: 100%;
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <div id="viewer"></div>
+
+    <script>
+
+        const viewer = OpenSeadragon({
+            id: "viewer",
+
+            prefixUrl:
+                "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.1/images/",
+
+			tileSources:
+				"../generated/world.dzi?v=" + Date.now(),
+
+            showNavigator: true,
+
+            animationTime: 0.8,
+
+            blendTime: 0.1,
+
+            maxZoomPixelRatio: 2,
+
+            visibilityRatio: 0.8,
+
+            constrainDuringPan: false
+        });
+
+    </script>
+
+</body>
+
+</html>
