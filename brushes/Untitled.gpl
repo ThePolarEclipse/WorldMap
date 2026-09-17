@@ -1,0 +1,14 @@
+GIMP Palette
+Name: WORLD PALETTE
+Columns: 3
+#
+ 78  78  75	Terrain
+255 248 226	Ground
+ 83 130 170	Water
+ 58 130  74	Mild
+118 130  58	Warm
+ 54  89  62	Cold
+ 89  80  61	Path
+132 116  80	POIs
+179 160  68	Farm
+  0   0   0	Black
