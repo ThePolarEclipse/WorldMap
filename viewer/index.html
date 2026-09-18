@@ -2,61 +2,5288 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
 
-    <title>My World Map</title>
+<meta charset="UTF-8">
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.1/openseadragon.min.js"></script>
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
 
-    <style>
+<title>World Map</title>
 
-        html, body {
-            margin: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background: #222;
-        }
+<script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.1/openseadragon.min.js"></script>
 
-        #viewer {
-            width: 100%;
-            height: 100%;
-        }
+<style>
 
-    </style>
+/* ============================================================
+   GLOBAL
+============================================================ */
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+
+    margin: 0;
+
+    width: 100%;
+    height: 100%;
+
+    overflow: hidden;
+
+    background: #222;
+
+    font-family: Arial, sans-serif;
+}
+
+button,
+input,
+textarea,
+select {
+    font-family: inherit;
+}
+
+#viewer {
+
+    width: 100%;
+    height: 100%;
+}
+#editorTitle {
+    cursor: grab;
+    user-select: none;
+}
+
+#editorTitle:active {
+    cursor: grabbing;
+}
+
+/* ============================================================
+   PINS BUTTON
+============================================================ */
+
+#pinsButton {
+
+    position: absolute;
+
+    bottom: 20px;
+    left: 20px;
+
+    z-index: 3000;
+
+    background: #222;
+    color: white;
+
+    border: 1px solid #666;
+
+    border-radius: 7px;
+
+    padding: 10px 16px;
+
+    font-size: 14px;
+
+    cursor: pointer;
+}
+
+#pinsButton:hover {
+    background: #333;
+}
+
+
+/* ============================================================
+   PINS PANEL
+============================================================ */
+
+#pinsPanel {
+
+    position: absolute;
+
+    bottom: 65px;
+    left: 20px;
+
+    z-index: 3000;
+
+    width: 370px;
+
+    max-height: 75vh;
+
+    overflow-y: auto;
+
+    background:
+        rgba(25, 25, 25, 0.98);
+
+    border:
+        1px solid #555;
+
+    border-radius: 9px;
+
+    box-shadow:
+        0 8px 30px rgba(0, 0, 0, 0.6);
+
+    color: white;
+
+    display: none;
+}
+
+#pinsPanel.open {
+    display: block;
+}
+
+
+/* ============================================================
+   PINS HEADER
+============================================================ */
+
+#pinsHeader {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    padding: 13px;
+
+    border-bottom:
+        1px solid #444;
+}
+
+#pinsHeaderTitle {
+
+    font-size: 17px;
+    font-weight: bold;
+}
+
+#newGroupButton {
+
+    background: #333;
+    color: white;
+
+    border:
+        1px solid #555;
+
+    border-radius: 5px;
+
+    padding: 6px 9px;
+
+    cursor: pointer;
+}
+
+#newGroupButton:hover {
+    background: #444;
+}
+
+
+/* ============================================================
+   PIN LIST
+============================================================ */
+
+#pinsList {
+    padding: 8px;
+}
+
+
+/* ============================================================
+   GROUP
+============================================================ */
+
+.pin-group {
+
+    margin-bottom: 6px;
+
+    border-radius: 6px;
+}
+
+
+/*
+ * This is the draggable group header.
+ */
+
+.pin-group-header {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 5px;
+
+    min-height: 38px;
+
+    padding: 4px 5px;
+
+    background: #303030;
+
+    border-radius: 6px;
+
+    cursor: grab;
+}
+
+.pin-group-header:active {
+    cursor: grabbing;
+}
+
+
+/* ============================================================
+   GROUP DRAG HANDLE
+============================================================ */
+
+.group-drag-handle {
+
+    color: #777;
+
+    padding: 4px;
+
+    cursor: grab;
+
+    user-select: none;
+}
+
+.group-drag-handle:hover {
+    color: #aaa;
+}
+
+
+/* ============================================================
+   GROUP NAME
+============================================================ */
+
+.group-name-button {
+
+    flex: 1;
+
+    min-width: 0;
+
+    background: transparent;
+
+    border: 0;
+
+    color: white;
+
+    text-align: left;
+
+    padding: 7px 4px;
+
+    cursor: pointer;
+
+    font-weight: bold;
+}
+
+.group-name-button:hover {
+    color: #ddd;
+}
+
+
+/* ============================================================
+   ICON BUTTONS
+============================================================ */
+
+.small-action {
+
+    width: 28px;
+    height: 28px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    background: transparent;
+
+    border: 0;
+
+    border-radius: 4px;
+
+    color: #bbb;
+
+    cursor: pointer;
+
+    font-size: 16px;
+}
+
+.small-action:hover {
+
+    background: #444;
+
+    color: white;
+}
+
+
+/*
+ * Delete buttons
+ */
+
+.delete-button {
+
+    color: #ff5555;
+
+    font-weight: bold;
+
+    font-size: 19px;
+}
+
+.delete-button:hover {
+
+    background: #5a2222;
+
+    color: #ff7777;
+}
+
+
+/* ============================================================
+   GROUP CONTENT
+============================================================ */
+
+.pin-group-content {
+
+    padding:
+
+        3px 0 3px 18px;
+
+    min-height: 8px;
+}
+
+.pin-group-content.collapsed {
+    display: none;
+}
+
+
+/*
+ * Important for dropping into empty groups.
+ */
+
+.pin-group-content.drag-over {
+
+    background:
+        rgba(255,255,255,0.08);
+
+    outline:
+        1px dashed #888;
+
+    border-radius: 5px;
+
+    min-height: 42px;
+}
+
+
+/* ============================================================
+   PIN ROW
+============================================================ */
+
+.pin-list-item {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 3px;
+
+    width: 100%;
+
+    min-height: 37px;
+
+    margin: 2px 0;
+
+    border-radius: 5px;
+
+    cursor: grab;
+}
+
+.pin-list-item:active {
+    cursor: grabbing;
+}
+
+.pin-list-item:hover {
+    background: #333;
+}
+
+
+/* ============================================================
+   PIN DRAG HANDLE
+============================================================ */
+
+.pin-drag-handle {
+
+    color: #666;
+
+    padding: 3px;
+
+    font-size: 12px;
+
+    user-select: none;
+}
+
+.pin-list-item:hover
+.pin-drag-handle {
+    color: #999;
+}
+
+
+/* ============================================================
+   PIN ICON
+============================================================ */
+
+.pin-list-icon {
+
+    width: 28px;
+    height: 28px;
+
+    flex-shrink: 0;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    background: transparent;
+
+    border: 0;
+
+    padding: 0;
+
+    cursor: pointer;
+}
+
+
+/* ============================================================
+   PIN NAME
+============================================================ */
+
+.pin-list-name {
+
+    flex: 1;
+
+    min-width: 0;
+
+    padding: 8px 5px;
+
+    background: transparent;
+
+    border: 0;
+
+    color: white;
+
+    text-align: left;
+
+    cursor: pointer;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+}
+
+.pin-list-name:hover {
+    color: #ddd;
+}
+
+
+/* ============================================================
+   EMPTY GROUP
+============================================================ */
+
+.empty-group {
+
+    min-height: 34px;
+
+    padding: 8px;
+
+    color: #777;
+
+    font-size: 12px;
+
+    font-style: italic;
+
+    border-radius: 5px;
+}
+
+.empty-group.drag-over {
+
+    background:
+        rgba(255,255,255,0.08);
+
+    color: #bbb;
+}
+
+
+/* ============================================================
+   PIN EDITOR
+============================================================ */
+
+#pinEditor {
+
+    position: absolute;
+
+    z-index: 4000;
+
+    width: 340px;
+
+    background:
+        rgba(25,25,25,0.98);
+
+    border:
+        1px solid #555;
+
+    border-radius: 9px;
+
+    padding: 15px;
+
+    color: white;
+
+    box-shadow:
+        0 8px 30px rgba(0,0,0,0.6);
+
+    display: none;
+}
+
+#pinEditor.open {
+    display: block;
+}
+
+#pinEditor h3 {
+
+    margin:
+        0 0 13px 0;
+}
+
+.editor-label {
+
+    display: block;
+
+    margin-bottom: 6px;
+
+    font-size: 12px;
+
+    color: #bbb;
+}
+
+#pinEditor input,
+#pinEditor textarea,
+#pinEditor select {
+
+    width: 100%;
+
+    margin-bottom: 10px;
+
+    padding: 8px;
+
+    background: #111;
+
+    color: white;
+
+    border:
+        1px solid #555;
+
+    border-radius: 5px;
+
+    font-size: 14px;
+}
+
+#pinEditor textarea {
+
+    height: 75px;
+
+    resize: vertical;
+}
+
+
+/* ============================================================
+   COLOUR
+============================================================ */
+
+#colourPickerRow {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    margin-bottom: 8px;
+}
+
+#pinColour {
+
+    width: 48px;
+    height: 38px;
+
+    padding: 2px;
+
+    background: #111;
+
+    border:
+        1px solid #666;
+
+    border-radius: 5px;
+
+    cursor: pointer;
+}
+
+#currentColourText {
+
+    color: #ccc;
+
+    font-size: 13px;
+}
+
+
+/* ============================================================
+   SAVED COLOURS
+============================================================ */
+
+#savedColours {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(8, 28px);
+
+    gap: 5px;
+
+    margin-bottom: 13px;
+}
+
+.saved-colour {
+
+    position: relative;
+
+    width: 28px;
+    height: 28px;
+
+    padding: 0;
+
+    border:
+        2px solid #555;
+
+    border-radius: 5px;
+
+    cursor: pointer;
+}
+
+.saved-colour:hover {
+    border-color: white;
+}
+
+.saved-colour-remove {
+
+    position: absolute;
+
+    top: -7px;
+    right: -7px;
+
+    width: 16px;
+    height: 16px;
+
+    padding: 0;
+
+    display: none;
+
+    align-items: center;
+    justify-content: center;
+
+    background: #d22;
+
+    color: white;
+
+    border:
+        2px solid white;
+
+    border-radius: 50%;
+
+    font-size: 11px;
+
+    font-weight: bold;
+
+    line-height: 11px;
+
+    cursor: pointer;
+
+    z-index: 2;
+}
+
+.saved-colour:hover
+.saved-colour-remove {
+    display: flex;
+}
+
+
+/* ============================================================
+   SHAPES
+============================================================ */
+
+#shapeSelector {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(4,1fr);
+
+    gap: 6px;
+
+    margin-bottom: 12px;
+}
+
+.shape-option {
+
+    height: 42px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    background: #222;
+
+    border:
+        1px solid #555;
+
+    border-radius: 5px;
+
+    color: white;
+
+    cursor: pointer;
+}
+
+.shape-option:hover {
+    background: #333;
+}
+
+.shape-option.selected {
+
+    border-color: white;
+
+    background: #3a3a3a;
+}
+
+
+/* ============================================================
+   EDITOR BUTTONS
+============================================================ */
+
+#editorButtons {
+
+    display: flex;
+
+    gap: 7px;
+
+    margin-top: 5px;
+}
+
+#editorButtons button {
+
+    flex: 1;
+
+    padding: 9px;
+
+    background: #333;
+
+    color: white;
+
+    border:
+        1px solid #555;
+
+    border-radius: 5px;
+
+    cursor: pointer;
+}
+
+#editorButtons button:hover {
+    background: #444;
+}
+
+#deletePinButton {
+
+    background:
+        #5a2222 !important;
+}
+
+#deletePinButton:hover {
+
+    background:
+        #702b2b !important;
+}
+
+
+/* ============================================================
+   NEW GROUP DIALOG
+============================================================ */
+
+#groupDialog {
+
+    position: absolute;
+
+    z-index: 5000;
+
+    left: 50%;
+    top: 50%;
+
+    transform:
+        translate(-50%,-50%);
+
+    width: 300px;
+
+    background:
+        rgba(25,25,25,0.98);
+
+    border:
+        1px solid #555;
+
+    border-radius: 9px;
+
+    padding: 15px;
+
+    color: white;
+
+    box-shadow:
+        0 8px 30px rgba(0,0,0,0.6);
+
+    display: none;
+}
+
+#groupDialog.open {
+    display: block;
+}
+
+#groupDialog h3 {
+
+    margin:
+        0 0 12px 0;
+}
+
+#groupDialog input {
+
+    width: 100%;
+
+    padding: 9px;
+
+    margin-bottom: 10px;
+
+    background: #111;
+
+    color: white;
+
+    border:
+        1px solid #555;
+
+    border-radius: 5px;
+}
+
+#groupDialogButtons {
+
+    display: flex;
+
+    gap: 8px;
+}
+
+#groupDialogButtons button {
+
+    flex: 1;
+
+    padding: 9px;
+
+    background: #333;
+
+    color: white;
+
+    border:
+        1px solid #555;
+
+    border-radius: 5px;
+
+    cursor: pointer;
+}
+
+
+/* ============================================================
+   MAP PINS
+============================================================ */
+
+.map-pin {
+    width: 26px;
+    height: 26px;
+    position: relative;
+    cursor: pointer;
+    transition:
+        opacity .2s ease,
+        transform .15s ease;
+}
+
+.map-pin:hover {
+    transform: scale(1.18);
+}
+
+.pin-shape {
+    width: 100%;
+    height: 100%;
+    background: var(--pin-color);
+    border: 2px solid var(--pin-outline);
+}
+
+.pin-shape.circle {
+    border-radius: 50%;
+}
+
+.pin-shape.square {
+    border-radius: 3px;
+}
+
+/*
+ * TRIANGLE
+ * Larger by 50%: 39px wide, 75px tall equivalent.
+ * Outline drawn behind using ::before on .map-pin.
+ */
+.pin-shape.triangle {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 0;
+    height: 0;
+    background: transparent;
+    border-left: 12.75px solid transparent;
+    border-right: 12.75px solid transparent;
+    border-bottom: 23.75px solid var(--pin-color);
+    border-top: 0;
+    transform: translate(-50%, -66.67%);
+    z-index: 1;
+}
+
+/*
+ * STAR
+ * Larger by 50%.
+ */
+.pin-shape.star {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--pin-color);
+    clip-path: polygon(
+        50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 95%,
+        50% 72%, 21% 95%, 32% 57%, 2% 35%, 39% 35%
+    );
+    border: 0;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,.65));
+    transform: scale(0.9);
+    transform-origin: center;
+    z-index: 1;
+}
+
+/*
+ * White outlines for triangle and star.
+ * Drawn as ::before on .map-pin so it sits
+ * reliably behind the coloured shape.
+ */
+
+.map-pin:has(.pin-shape.triangle)::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 0;
+    height: 0;
+    border-left: 15px solid transparent;
+    border-right: 15px solid transparent;
+	border-bottom: 28px solid var(--pin-outline);
+    border-top: 0;
+    transform: translate(-50%, -66.67%);
+    z-index: 0;
+}
+
+.map-pin:has(.pin-shape.star)::before {
+    content: "";
+    position: absolute;
+    inset: -6px;
+    background: var(--pin-outline);
+    clip-path: polygon(
+        50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 95%,
+        50% 72%, 21% 95%, 32% 57%, 2% 35%, 39% 35%
+    );
+    z-index: 0;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,.65));
+    transform: scale(0.9);
+    transform-origin: center;
+}
+/*
+ * RHOMBUS
+ * A square rotated 45deg. Outline drawn with
+ * the same rotation on a slightly larger box.
+ */
+
+.pin-shape.rhombus {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 83%;
+    height: 83%;
+    background: var(--pin-color);
+    border: 2px solid var(--pin-outline);
+    border-radius: 3px;
+    transform: translate(-50%, -50%) rotate(45deg);
+    z-index: 1;
+}
+
+/*
+ * CROSS (X)
+ * Two crossing bars built with clip-path.
+ * Uses the two-layer outline trick.
+ */
+
+.pin-shape.cross {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--pin-color);
+    border: 0;
+    clip-path: polygon(
+        20% 0%, 50% 30%, 80% 0%,
+        100% 20%, 70% 50%, 100% 80%,
+        80% 100%, 50% 70%, 20% 100%,
+        0% 80%, 30% 50%, 0% 20%
+    );
+    transform: scale(0.9);
+    transform-origin: center;
+    z-index: 1;
+}
+
+.map-pin:has(.pin-shape.cross)::before {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    background: var(--pin-outline);
+    clip-path: polygon(
+        25% 5%, 50% 25%, 75% 5%,
+        95% 25%, 75% 50%, 95% 75%,
+        75% 95%, 50% 75%, 25% 95%,
+        5% 75%, 25% 50%, 5% 25%
+    );
+    transform: scale(1);
+    transform-origin: center;
+    z-index: 0;
+}
+
+/*
+ * HEART
+ * Built from the classic two-circle-plus-square
+ * shape, expressed as a clip-path so it scales.
+ */
+
+.pin-shape.heart {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--pin-color);
+    border: 0;
+        clip-path: polygon(
+        50% 100%, 15% 65%, 0% 40%, 0% 22%,
+        12% 8%, 28% 8%, 42% 22%, 50% 34%,
+        58% 22%, 72% 8%, 88% 8%, 100% 22%,
+        100% 40%, 85% 65%
+    );
+    transform: scale(0.95);
+    transform-origin: center;
+    z-index: 1;
+}
+
+/*
+ * Heart outline is drawn with the same path but
+ * a fatter stroke would be needed, so we use a
+ * scaled-up background layer instead.
+ */
+
+.map-pin:has(.pin-shape.heart)::before {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    background: var(--pin-outline);
+        clip-path: polygon(
+        50% 100%, 15% 65%, 0% 40%, 0% 22%,
+        10% 8%, 28% 8%, 52% 22%, 50% 34%,
+        48% 22%, 72% 8%, 88% 8%, 100% 22%,
+        100% 40%, 85% 65%
+    );
+    transform: scale(1.0);
+    transform-origin: center;
+    z-index: 0;
+}
+
+/*
+ * SHIELD
+ * Classic heraldic shield silhouette.
+ */
+
+.pin-shape.shield {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--pin-color);
+    border: 0;
+    clip-path: polygon(
+        50% 0%,
+        100% 12%,
+        100% 55%,
+        50% 100%,
+        0% 55%,
+        0% 12%
+    );
+    transform: scale(0.95);
+    transform-origin: center;
+    z-index: 1;
+}
+
+.map-pin:has(.pin-shape.shield)::before {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    background: var(--pin-outline);
+    clip-path: polygon(
+        50% 0%,
+        100% 12%,
+        100% 55%,
+        50% 100%,
+        0% 55%,
+        0% 12%
+    );
+    transform: scale(1.0);
+    transform-origin: center;
+    z-index: 0;
+}
+/*
+ * Ensure the coloured shape sits on top.
+ */
+.pin-shape {
+    position: relative;
+    z-index: 1;
+}
+
+/* ============================================================
+   TOOLTIP
+============================================================ */
+
+#pinTooltip {
+
+    position: absolute;
+
+    z-index: 6000;
+
+    max-width: 270px;
+
+    padding: 9px 11px;
+
+    background:
+        rgba(20,20,20,.96);
+
+    color: white;
+
+    border:
+        1px solid #555;
+
+    border-radius: 6px;
+
+    box-shadow:
+        0 5px 20px rgba(0,0,0,.5);
+
+    pointer-events: none;
+
+    display: none;
+}
+
+#pinTooltipName {
+
+    font-weight: bold;
+
+    margin-bottom: 4px;
+}
+
+#pinTooltipDescription {
+
+    color: #ccc;
+
+    font-size: 13px;
+
+    white-space: pre-wrap;
+}
+
+
+/* ============================================================
+   DRAGGING
+============================================================ */
+
+.dragging-pin {
+
+    opacity: .5;
+}
+
+.dragging-group {
+
+    opacity: .5;
+}
+
+</style>
+
 </head>
+
 
 <body>
 
-    <div id="viewer"></div>
 
-    <script>
+<div id="viewer"></div>
 
-        const viewer = OpenSeadragon({
-            id: "viewer",
 
-            prefixUrl:
-                "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.1/images/",
+<!-- =========================================================
+     PINS BUTTON
+========================================================= -->
 
-			tileSources:
-				"../generated/world.dzi?v=" + Date.now(),
+<button id="pinsButton">
+    Pins
+</button>
 
-            showNavigator: true,
-			
-			wrapHorizontal: true,
 
-            animationTime: 0.8,
+<!-- =========================================================
+     PINS PANEL
+========================================================= -->
 
-            blendTime: 0.1,
+<div id="pinsPanel">
 
-            maxZoomPixelRatio: 2,
+    <div id="pinsHeader">
 
-            visibilityRatio: 0.8,
+        <span id="pinsHeaderTitle">
+            Pins
+        </span>
 
-            constrainDuringPan: false
-        });
+        <button id="newGroupButton">
+            + New Group
+        </button>
 
-    </script>
+    </div>
+
+    <div id="pinsList"></div>
+
+</div>
+
+
+<!-- =========================================================
+     PIN EDITOR
+========================================================= -->
+
+<div id="pinEditor">
+
+    <h3 id="editorTitle">
+        New Pin
+    </h3>
+
+
+    <label class="editor-label">
+        Name
+    </label>
+
+    <input
+        id="pinName"
+        type="text"
+        placeholder="Pin name"
+    >
+
+
+    <label class="editor-label">
+        Description
+    </label>
+
+    <textarea
+        id="pinDescription"
+        placeholder="Description"
+    ></textarea>
+
+
+    <label class="editor-label">
+        Colour
+    </label>
+
+    <div id="colourPickerRow">
+
+        <input
+            id="pinColour"
+            type="color"
+            value="#e53935"
+        >
+
+        <span id="currentColourText">
+            #e53935
+        </span>
+
+    </div>
+
+
+    <label class="editor-label">
+        Saved colours
+    </label>
+
+    <div id="savedColours"></div>
+
+
+    <label class="editor-label">
+        Shape
+    </label>
+
+        <div id="shapeSelector">
+
+        <button
+            class="shape-option selected"
+            data-shape="circle"
+            title="Circle"
+        >
+            ●
+        </button>
+
+        <button
+            class="shape-option"
+            data-shape="square"
+            title="Square"
+        >
+            ■
+        </button>
+
+        <button
+            class="shape-option"
+            data-shape="triangle"
+            title="Triangle"
+        >
+            ▲
+        </button>
+
+        <button
+            class="shape-option"
+            data-shape="star"
+            title="Star"
+        >
+            ★
+        </button>
+
+        <button
+            class="shape-option"
+            data-shape="rhombus"
+            title="Rhombus"
+        >
+            ◆
+        </button>
+
+        <button
+            class="shape-option"
+            data-shape="cross"
+            title="Cross"
+        >
+            ✕
+        </button>
+
+        <button
+            class="shape-option"
+            data-shape="heart"
+            title="Heart"
+        >
+            ♥
+        </button>
+
+        <button
+            class="shape-option"
+            data-shape="shield"
+            title="Shield"
+        >
+            ⛨
+        </button>
+
+    </div>
+
+
+    <label class="editor-label">
+        Group
+    </label>
+
+    <select id="pinGroup"></select>
+
+
+    <input
+        id="newGroupName"
+        type="text"
+        placeholder="Or create a new group..."
+    >
+
+
+    <div id="editorButtons">
+
+        <button id="savePinButton">
+            Save
+        </button>
+
+        <button id="cancelPinButton">
+            Cancel
+        </button>
+
+        <button id="deletePinButton">
+            Delete
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     GROUP DIALOG
+========================================================= -->
+
+<div id="groupDialog">
+
+    <h3 id="groupDialogTitle">
+        New Group
+    </h3>
+
+    <input
+        id="groupNameInput"
+        type="text"
+        placeholder="Group name"
+    >
+
+    <div id="groupDialogButtons">
+
+        <button id="saveGroupButton">
+            Save
+        </button>
+
+        <button id="cancelGroupButton">
+            Cancel
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     TOOLTIP
+========================================================= -->
+
+<div id="pinTooltip">
+
+    <div id="pinTooltipName"></div>
+
+    <div id="pinTooltipDescription"></div>
+
+</div>
+
+
+<script>
+
+/* ============================================================
+   OPEN SEADRAGON
+============================================================ */
+
+const viewer = OpenSeadragon({
+
+    id: "viewer",
+
+    prefixUrl:
+        "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.1/images/",
+
+    tileSources:
+        "../generated/world.dzi",
+
+    showNavigator: true,
+
+    animationTime: 0.8,
+
+    blendTime: 0.1,
+
+    maxZoomPixelRatio: 2,
+
+    visibilityRatio: 0.8,
+
+    constrainDuringPan: false
+
+});
+
+
+/* ============================================================
+   STORAGE KEYS
+============================================================ */
+
+const PIN_STORAGE =
+    "worldMapPins";
+
+const COLOUR_STORAGE =
+    "worldMapColours";
+
+const GROUP_STORAGE =
+    "worldMapGroups";
+
+/* ============================================================
+   OUTLINE COLOUR
+============================================================ */
+
+function getOutlineColour(hex) {
+
+    /*
+     * Returns a tinted version of the colour:
+     * same hue and saturation, but darker if the
+     * colour is light, lighter if the colour is dark.
+     *
+     * This keeps the outline visually related to the
+     * pin instead of jumping to stark black or white.
+     */
+
+    if (!hex) {
+        return "#000000";
+    }
+
+    hex = hex.replace("#", "");
+
+    if (hex.length === 3) {
+
+        hex =
+            hex[0] + hex[0] +
+            hex[1] + hex[1] +
+            hex[2] + hex[2];
+
+    }
+
+    let r = parseInt(hex.substring(0, 2), 16) / 255;
+    let g = parseInt(hex.substring(2, 4), 16) / 255;
+    let b = parseInt(hex.substring(4, 6), 16) / 255;
+
+
+    /*
+     * RGB -> HSL so we can move lightness
+     * without touching hue or saturation.
+     */
+
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+
+    let h = 0;
+    let s = 0;
+    const l = (max + min) / 2;
+
+    const d = max - min;
+
+    if (d !== 0) {
+
+        s =
+            l > 0.5
+                ? d / (2 - max - min)
+                : d / (max + min);
+
+        switch (max) {
+
+            case r:
+                h = (g - b) / d + (g < b ? 6 : 0);
+                break;
+
+            case g:
+                h = (b - r) / d + 2;
+                break;
+
+            case b:
+                h = (r - g) / d + 4;
+                break;
+
+        }
+
+        h /= 6;
+
+    }
+
+
+    /*
+     * Move lightness away from the mid-point.
+     *
+     * LIGHT colour (l > 0.5):
+     *   darken by ~30% of the distance to black.
+     *
+     * DARK colour (l <= 0.5):
+     *   lighten by ~30% of the distance to white.
+     *
+     * We also nudge saturation up a little so the
+     * outline reads as "the same colour, just
+     * deeper / brighter" rather than grey.
+     */
+
+    let newL;
+
+    if (l > 0.5) {
+
+        newL = l - (l * 0.35);
+
+    } else {
+
+        newL = l + ((1 - l) * 0.35);
+
+    }
+
+    let newS = Math.min(1, s * 1.15);
+
+
+    /*
+     * HSL -> RGB.
+     */
+
+    function hueToRgb(p, q, t) {
+
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+
+        if (t < 1 / 6) return p + (q - p) * 6 * t;
+        if (t < 1 / 2) return q;
+        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+
+        return p;
+
+    }
+
+    let newR;
+    let newG;
+    let newB;
+
+    if (newS === 0) {
+
+        newR = newG = newB = newL;
+
+    } else {
+
+        const q =
+            newL < 0.5
+                ? newL * (1 + newS)
+                : newL + newS - newL * newS;
+
+        const p = 2 * newL - q;
+
+        newR = hueToRgb(p, q, h + 1 / 3);
+        newG = hueToRgb(p, q, h);
+        newB = hueToRgb(p, q, h - 1 / 3);
+
+    }
+
+
+    /*
+     * Back to 0-255 hex.
+     */
+
+    function toHex(x) {
+
+        const v =
+            Math.round(x * 255);
+
+        return v.toString(16).padStart(2, "0");
+
+    }
+
+    return (
+        "#" +
+        toHex(newR) +
+        toHex(newG) +
+        toHex(newB)
+    );
+
+}
+/* ============================================================
+   LOAD DATA
+============================================================ */
+
+let pins =
+    JSON.parse(
+        localStorage.getItem(
+            PIN_STORAGE
+        ) || "[]"
+    );
+
+let savedColours =
+    JSON.parse(
+        localStorage.getItem(
+            COLOUR_STORAGE
+        ) || "[]"
+    );
+
+let groups =
+    JSON.parse(
+        localStorage.getItem(
+            GROUP_STORAGE
+        ) || "[]"
+    );
+
+
+/* ============================================================
+   MIGRATION / NORMALISATION
+============================================================ */
+
+/*
+ * Older versions may have stored groups as an array of
+ * strings. We keep that format.
+ *
+ * Pins are given defaults for anything new.
+ */
+
+pins.forEach(
+    function(pin) {
+
+        if (!pin.id) {
+
+            pin.id =
+                crypto.randomUUID
+                    ? crypto.randomUUID()
+                    : Date.now().toString();
+
+        }
+
+        if (!pin.colour) {
+            pin.colour = "#e53935";
+        }
+
+        if (!pin.shape) {
+            pin.shape = "circle";
+        }
+
+        if (!pin.group) {
+            pin.group = "";
+        }
+
+        if (
+            typeof pin.hidden
+            !== "boolean"
+        ) {
+
+            pin.hidden = false;
+
+        }
+
+    }
+);
+
+
+/*
+ * Remove duplicate groups.
+ */
+
+groups =
+    [...new Set(groups)];
+
+
+/*
+ * Make sure groups used by pins exist.
+ */
+
+pins.forEach(
+    function(pin) {
+
+        if (
+            pin.group &&
+            !groups.includes(
+                pin.group
+            )
+        ) {
+
+            groups.push(
+                pin.group
+            );
+
+        }
+
+    }
+);
+
+
+/* ============================================================
+   STATE
+============================================================ */
+
+let editingPinId = null;
+
+let pendingPinLocation = null;
+
+let selectedShape = "circle";
+
+let editingGroupName = null;
+
+let holdTimer = null;
+
+let holding = false;
+
+let holdStartX = 0;
+
+let holdStartY = 0;
+
+
+/* ============================================================
+   SAVE DATA
+============================================================ */
+
+function saveData() {
+
+    localStorage.setItem(
+        PIN_STORAGE,
+        JSON.stringify(pins)
+    );
+
+    localStorage.setItem(
+        COLOUR_STORAGE,
+        JSON.stringify(savedColours)
+    );
+
+    localStorage.setItem(
+        GROUP_STORAGE,
+        JSON.stringify(groups)
+    );
+
+}
+
+
+/* ============================================================
+   COLOUR STORAGE
+============================================================ */
+
+function saveColour(
+    colour
+) {
+
+    colour =
+        colour.toLowerCase();
+
+    savedColours =
+        savedColours.filter(
+            c =>
+                c !== colour
+        );
+
+    savedColours.unshift(
+        colour
+    );
+
+    savedColours =
+        savedColours.slice(
+            0,
+            32
+        );
+
+    saveData();
+
+    renderSavedColours();
+
+}
+
+
+/* ============================================================
+   RENDER SAVED COLOURS
+============================================================ */
+
+function renderSavedColours() {
+
+    const container =
+        document.getElementById(
+            "savedColours"
+        );
+
+    container.innerHTML = "";
+
+
+    savedColours.forEach(
+        function(colour) {
+
+            const wrapper =
+                document.createElement(
+                    "div"
+                );
+
+            wrapper.style.position =
+                "relative";
+
+
+            const button =
+                document.createElement(
+                    "button"
+                );
+
+            button.className =
+                "saved-colour";
+
+            button.style.background =
+                colour;
+
+            button.title =
+                "Use " + colour;
+
+
+            button.addEventListener(
+                "click",
+                function() {
+
+                    setPinColour(
+                        colour
+                    );
+
+                }
+            );
+
+
+            /*
+             * RED X
+             */
+
+            const remove =
+                document.createElement(
+                    "button"
+                );
+
+            remove.className =
+                "saved-colour-remove";
+
+            remove.textContent =
+                "×";
+
+            remove.title =
+                "Remove colour";
+
+
+            remove.addEventListener(
+                "click",
+                function(event) {
+
+                    event.stopPropagation();
+
+                    savedColours =
+                        savedColours.filter(
+                            c =>
+                                c !== colour
+                        );
+
+                    saveData();
+
+                    renderSavedColours();
+
+                }
+            );
+
+
+            wrapper.appendChild(
+                button
+            );
+
+            button.appendChild(
+                remove
+            );
+
+            container.appendChild(
+                wrapper
+            );
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   SET COLOUR
+============================================================ */
+
+function setPinColour(
+    colour
+) {
+
+    document.getElementById(
+        "pinColour"
+    ).value =
+        colour;
+
+    document.getElementById(
+        "currentColourText"
+    ).textContent =
+        colour;
+
+}
+
+
+/* ============================================================
+   COLOUR PICKER
+============================================================ */
+
+document.getElementById(
+    "pinColour"
+).addEventListener(
+    "input",
+    function() {
+
+        document.getElementById(
+            "currentColourText"
+        ).textContent =
+            this.value;
+
+    }
+);
+
+
+/* ============================================================
+   SHAPE SELECTOR
+============================================================ */
+
+document.querySelectorAll(
+    ".shape-option"
+).forEach(
+    function(button) {
+
+        button.addEventListener(
+            "click",
+            function() {
+
+                document
+                    .querySelectorAll(
+                        ".shape-option"
+                    )
+                    .forEach(
+                        b =>
+                            b.classList.remove(
+                                "selected"
+                            )
+                    );
+
+                this.classList.add(
+                    "selected"
+                );
+
+                selectedShape =
+                    this.dataset.shape;
+
+            }
+        );
+
+    }
+);
+
+
+/* ============================================================
+   GROUP SELECTOR
+============================================================ */
+
+function refreshGroupSelector(
+    selectedGroup = ""
+) {
+
+    const select =
+        document.getElementById(
+            "pinGroup"
+        );
+
+    select.innerHTML = "";
+
+
+    const none =
+        document.createElement(
+            "option"
+        );
+
+    none.value = "";
+
+    none.textContent =
+        "Ungrouped";
+
+    select.appendChild(
+        none
+    );
+
+
+    groups.forEach(
+        function(group) {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+            option.value =
+                group;
+
+            option.textContent =
+                group;
+
+            select.appendChild(
+                option
+            );
+
+        }
+    );
+
+
+    select.value =
+        selectedGroup;
+
+}
+
+
+/* ============================================================
+   CREATE GROUP FROM PIN EDITOR
+============================================================ */
+
+function createGroupIfNeeded() {
+
+    const input =
+        document.getElementById(
+            "newGroupName"
+        );
+
+    const name =
+        input.value.trim();
+
+
+    if (!name) {
+        return "";
+    }
+
+
+    if (
+        !groups.includes(
+            name
+        )
+    ) {
+
+        groups.push(
+            name
+        );
+
+    }
+
+
+    input.value = "";
+
+    refreshGroupSelector(
+        name
+    );
+
+    saveData();
+
+    return name;
+
+}
+
+
+/* ============================================================
+   GROUP DIALOG
+============================================================ */
+
+function openGroupDialog(
+    groupName = null
+) {
+
+    editingGroupName =
+        groupName;
+
+
+    document.getElementById(
+        "groupDialogTitle"
+    ).textContent =
+        groupName
+            ? "Rename Group"
+            : "New Group";
+
+
+    document.getElementById(
+        "groupNameInput"
+    ).value =
+        groupName || "";
+
+
+    document.getElementById(
+        "groupDialog"
+    ).classList.add(
+        "open"
+    );
+
+
+    document.getElementById(
+        "groupNameInput"
+    ).focus();
+
+}
+
+
+function closeGroupDialog() {
+
+    document.getElementById(
+        "groupDialog"
+    ).classList.remove(
+        "open"
+    );
+
+    editingGroupName =
+        null;
+
+}
+
+
+document.getElementById(
+    "newGroupButton"
+).addEventListener(
+    "click",
+    function() {
+
+        openGroupDialog();
+
+    }
+);
+
+
+document.getElementById(
+    "cancelGroupButton"
+).addEventListener(
+    "click",
+    function() {
+
+        closeGroupDialog();
+
+    }
+);
+
+
+/* ============================================================
+   SAVE / RENAME GROUP
+============================================================ */
+
+document.getElementById(
+    "saveGroupButton"
+).addEventListener(
+    "click",
+    function() {
+
+        const newName =
+            document.getElementById(
+                "groupNameInput"
+            ).value.trim();
+
+
+        if (!newName) {
+
+            alert(
+                "Please enter a group name."
+            );
+
+            return;
+
+        }
+
+
+        /*
+         * NEW GROUP
+         */
+
+        if (
+            !editingGroupName
+        ) {
+
+            if (
+                groups.includes(
+                    newName
+                )
+            ) {
+
+                alert(
+                    "That group already exists."
+                );
+
+                return;
+
+            }
+
+
+            groups.push(
+                newName
+            );
+
+            saveData();
+
+            renderPinsList();
+
+            closeGroupDialog();
+
+            return;
+
+        }
+
+
+        /*
+         * RENAME GROUP
+         */
+
+        if (
+            newName !==
+            editingGroupName
+            &&
+            groups.includes(
+                newName
+            )
+        ) {
+
+            alert(
+                "That group already exists."
+            );
+
+            return;
+
+        }
+
+
+        const index =
+            groups.indexOf(
+                editingGroupName
+            );
+
+
+        if (
+            index >= 0
+        ) {
+
+            groups[index] =
+                newName;
+
+        }
+
+
+        /*
+         * Update every pin belonging
+         * to the renamed group.
+         */
+
+        pins.forEach(
+            function(pin) {
+
+                if (
+                    pin.group
+                    === editingGroupName
+                ) {
+
+                    pin.group =
+                        newName;
+
+                }
+
+            }
+        );
+
+
+        saveData();
+
+        renderPinsList();
+
+        refreshGroupSelector();
+
+        closeGroupDialog();
+
+    }
+);
+
+
+/* ============================================================
+   DELETE GROUP
+============================================================ */
+
+function deleteGroup(
+    groupName
+) {
+
+    const groupPins =
+        pins.filter(
+            pin =>
+                pin.group
+                === groupName
+        );
+
+
+    const message =
+        groupPins.length
+            ? `Delete group "${groupName}" and its ${groupPins.length} pin${groupPins.length === 1 ? "" : "s"}?`
+            : `Delete empty group "${groupName}"?`;
+
+
+    if (
+        !confirm(
+            message
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    /*
+     * Remove pins from this group.
+     */
+
+    groupPins.forEach(
+        function(pin) {
+
+            removePinOverlay(
+                pin.id
+            );
+
+        }
+    );
+
+
+    pins =
+        pins.filter(
+            pin =>
+                pin.group
+                !== groupName
+        );
+
+
+    groups =
+        groups.filter(
+            group =>
+                group !== groupName
+        );
+
+
+    saveData();
+
+    renderPinsList();
+
+    refreshGroupSelector();
+
+}
+
+
+/* ============================================================
+   DELETE PIN
+============================================================ */
+
+function deletePin(
+    pin
+) {
+
+    if (
+        !confirm(
+            `Delete "${pin.name}"?`
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    removePinOverlay(
+        pin.id
+    );
+
+
+    pins =
+        pins.filter(
+            p =>
+                p.id
+                !== pin.id
+        );
+
+
+    saveData();
+
+    renderPinsList();
+
+}
+
+
+/* ============================================================
+   TOGGLE PIN VISIBILITY
+============================================================ */
+
+function togglePinVisibility(
+    pin
+) {
+
+    pin.hidden =
+        !pin.hidden;
+
+
+    const element =
+        document.querySelector(
+            `.map-pin[data-pin-id="${pin.id}"]`
+        );
+
+
+    if (element) {
+
+        element.style.display =
+            pin.hidden
+                ? "none"
+                : "";
+
+    }
+
+
+    saveData();
+
+    renderPinsList();
+
+}
+
+
+/* ============================================================
+   TOGGLE GROUP VISIBILITY
+============================================================ */
+
+function toggleGroupVisibility(
+    groupName
+) {
+
+    const groupPins =
+        pins.filter(
+            pin =>
+                pin.group
+                === groupName
+        );
+
+
+    const currentlyVisible =
+        groupPins.some(
+            pin =>
+                !pin.hidden
+        );
+
+
+    groupPins.forEach(
+        function(pin) {
+
+            pin.hidden =
+                currentlyVisible;
+
+            const element =
+                document.querySelector(
+                    `.map-pin[data-pin-id="${pin.id}"]`
+                );
+
+            if (element) {
+
+                element.style.display =
+                    pin.hidden
+                        ? "none"
+                        : "";
+
+            }
+
+        }
+    );
+
+
+    saveData();
+
+    renderPinsList();
+
+}
+
+
+/* ============================================================
+   GROUP VISIBILITY STATE
+============================================================ */
+
+function groupIsVisible(
+    groupName
+) {
+
+    const groupPins =
+        pins.filter(
+            pin =>
+                pin.group
+                === groupName
+        );
+
+
+    if (
+        groupPins.length === 0
+    ) {
+
+        return true;
+
+    }
+
+
+    return groupPins.some(
+        pin =>
+            !pin.hidden
+    );
+
+}
+
+
+/* ============================================================
+   CREATE MAP PIN
+============================================================ */
+
+function createPinElement(
+    pin
+) {
+
+    const element =
+        document.createElement(
+            "div"
+        );
+
+    element.className =
+        "map-pin";
+
+    element.dataset.pinId =
+        pin.id;
+
+    element.title =
+        pin.name;
+
+
+    element.style.display =
+        pin.hidden
+            ? "none"
+            : "";
+
+
+    const shape =
+        document.createElement(
+            "div"
+        );
+
+    shape.className =
+        "pin-shape " +
+        pin.shape;
+
+    element.style.setProperty(
+        "--pin-color",
+        pin.colour
+    );
+
+    element.style.setProperty(
+        "--pin-outline",
+        getOutlineColour(pin.colour)
+    );
+
+    element.appendChild(
+        shape
+    );
+
+
+    /*
+     * Tooltip
+     */
+
+    element.addEventListener(
+        "mouseenter",
+        function(event) {
+
+            showPinTooltip(
+                pin,
+                event
+            );
+
+        }
+    );
+
+
+    element.addEventListener(
+        "mousemove",
+        function(event) {
+
+            movePinTooltip(
+                event
+            );
+
+        }
+    );
+
+
+    element.addEventListener(
+        "mouseleave",
+        function() {
+
+            hidePinTooltip();
+
+        }
+    );
+
+
+    /*
+     * Open editor.
+     *
+     * MouseTracker is the correct mechanism for
+     * interactive overlay content in OpenSeadragon.
+     */
+
+    new OpenSeadragon.MouseTracker({
+
+        element: element,
+
+        clickHandler:
+            function(event) {
+
+                event.preventDefaultAction =
+                    true;
+
+                openPinEditor(
+                    pin
+                );
+
+            }
+
+    });
+
+
+    return element;
+
+}
+
+
+/* ============================================================
+   DISPLAY PIN
+============================================================ */
+
+function displayPin(
+    pin
+) {
+
+    const element =
+        createPinElement(
+            pin
+        );
+
+
+    viewer.addOverlay({
+
+        element:
+            element,
+
+        location:
+            new OpenSeadragon.Point(
+                pin.x,
+                pin.y
+            ),
+
+        placement:
+            OpenSeadragon.Placement.CENTER,
+
+        checkResize:
+            false
+
+    });
+
+}
+
+
+/* ============================================================
+   REMOVE OVERLAY
+============================================================ */
+
+function removePinOverlay(
+    pinId
+) {
+
+    const element =
+        document.querySelector(
+            `.map-pin[data-pin-id="${pinId}"]`
+        );
+
+
+    if (!element) {
+        return;
+    }
+
+
+    viewer.removeOverlay(
+        element
+    );
+
+}
+
+
+/* ============================================================
+   REBUILD OVERLAYS
+============================================================ */
+
+function rebuildPinOverlays() {
+
+    document
+        .querySelectorAll(
+            ".map-pin"
+        )
+        .forEach(
+            function(element) {
+
+                viewer.removeOverlay(
+                    element
+                );
+
+            }
+        );
+
+
+    pins.forEach(
+        function(pin) {
+
+            displayPin(
+                pin
+            );
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   PIN EDITOR
+============================================================ */
+
+function openPinEditor(
+    pin = null,
+    screenX = null,
+    screenY = null,
+    worldPoint = null
+) {
+
+    editingPinId =
+        pin
+            ? pin.id
+            : null;
+
+
+    pendingPinLocation =
+        worldPoint;
+
+
+    document.getElementById(
+        "editorTitle"
+    ).textContent =
+        pin
+            ? "Edit Pin"
+            : "New Pin";
+
+
+    document.getElementById(
+        "pinName"
+    ).value =
+        pin
+            ? pin.name
+            : "";
+
+
+    document.getElementById(
+        "pinDescription"
+    ).value =
+        pin
+            ? pin.description
+            : "";
+
+
+    setPinColour(
+        pin
+            ? pin.colour
+            : "#e53935"
+    );
+
+
+    selectedShape =
+        pin
+            ? pin.shape
+            : "circle";
+
+
+    document
+        .querySelectorAll(
+            ".shape-option"
+        )
+        .forEach(
+            function(button) {
+
+                button.classList.toggle(
+                    "selected",
+                    button.dataset.shape
+                    === selectedShape
+                );
+
+            }
+        );
+
+
+    refreshGroupSelector(
+        pin
+            ? pin.group
+            : ""
+    );
+
+
+    document.getElementById(
+        "newGroupName"
+    ).value = "";
+
+
+    document.getElementById(
+        "deletePinButton"
+    ).style.display =
+        pin
+            ? "block"
+            : "none";
+
+
+    const editor =
+        document.getElementById(
+            "pinEditor"
+        );
+
+
+    editor.style.transform =
+        "";
+
+
+    if (
+        screenX !== null &&
+        screenY !== null
+    ) {
+
+        /*
+         * Measure the editor AFTER it's displayed,
+         * so we get its true size no matter how
+         * much content it holds.
+         */
+
+        editor.classList.add("open");
+
+        editor.style.left = "0px";
+        editor.style.top = "0px";
+
+        const rect =
+            editor.getBoundingClientRect();
+
+        const margin = 10;
+
+        const maxLeft =
+            window.innerWidth
+            - rect.width
+            - margin;
+
+        const maxTop =
+            window.innerHeight
+            - rect.height
+            - margin;
+
+        const left =
+            Math.max(
+                margin,
+                Math.min(screenX, maxLeft)
+            );
+
+        const top =
+            Math.max(
+                margin,
+                Math.min(screenY, maxTop)
+            );
+
+        editor.style.left = left + "px";
+        editor.style.top  = top + "px";
+
+    } else {
+
+        editor.style.left =
+            "50%";
+
+        editor.style.top =
+            "50%";
+
+        editor.style.transform =
+            "translate(-50%,-50%)";
+
+    }
+
+
+    editor.classList.add(
+        "open"
+    );
+
+
+    document.getElementById(
+        "pinName"
+    ).focus();
+
+}
+
+
+/* ============================================================
+   CLOSE PIN EDITOR
+============================================================ */
+
+function closePinEditor() {
+
+    document
+        .getElementById(
+            "pinEditor"
+        )
+        .classList.remove(
+            "open"
+        );
+
+    editingPinId =
+        null;
+
+    pendingPinLocation =
+        null;
+
+}
+
+
+/* ============================================================
+   DRAG PIN EDITOR
+============================================================ */
+
+(function setupEditorDrag() {
+
+    const editor =
+        document.getElementById(
+            "pinEditor"
+        );
+
+    const handle =
+        document.getElementById(
+            "editorTitle"
+        );
+
+    let dragging = false;
+    let startX = 0;
+    let startY = 0;
+    let startLeft = 0;
+    let startTop = 0;
+
+    handle.addEventListener(
+        "mousedown",
+        function(event) {
+
+            /*
+             * Only drag with the left button.
+             */
+            if (event.button !== 0) {
+                return;
+            }
+
+            event.preventDefault();
+
+            dragging = true;
+
+            startX = event.clientX;
+            startY = event.clientY;
+
+            const rect =
+                editor.getBoundingClientRect();
+
+            /*
+             * Normalise: remove any transform
+             * (the centred case uses translate).
+             */
+            if (
+                editor.style.transform
+            ) {
+
+                editor.style.left =
+                    rect.left + "px";
+
+                editor.style.top =
+                    rect.top + "px";
+
+                editor.style.transform =
+                    "";
+
+            }
+
+            startLeft =
+                parseFloat(
+                    editor.style.left
+                ) || rect.left;
+
+            startTop =
+                parseFloat(
+                    editor.style.top
+                ) || rect.top;
+
+            document.addEventListener(
+                "mousemove",
+                onMouseMove
+            );
+
+            document.addEventListener(
+                "mouseup",
+                onMouseUp
+            );
+
+        }
+    );
+
+    function onMouseMove(event) {
+
+        if (!dragging) {
+            return;
+        }
+
+        const dx =
+            event.clientX - startX;
+
+        const dy =
+            event.clientY - startY;
+
+        /*
+         * Clamp so the header stays on screen.
+         */
+        const minLeft =
+            -editor.offsetWidth + 80;
+
+        const maxLeft =
+            window.innerWidth - 80;
+
+        const minTop =
+            0;
+
+        const maxTop =
+            window.innerHeight - 40;
+
+        const newLeft =
+            Math.max(
+                minLeft,
+                Math.min(
+                    maxLeft,
+                    startLeft + dx
+                )
+            );
+
+        const newTop =
+            Math.max(
+                minTop,
+                Math.min(
+                    maxTop,
+                    startTop + dy
+                )
+            );
+
+        editor.style.left =
+            newLeft + "px";
+
+        editor.style.top =
+            newTop + "px";
+
+    }
+
+    function onMouseUp() {
+
+        dragging = false;
+
+        document.removeEventListener(
+            "mousemove",
+            onMouseMove
+        );
+
+        document.removeEventListener(
+            "mouseup",
+            onMouseUp
+        );
+
+    }
+
+})();
+
+/* ============================================================
+   SAVE PIN
+============================================================ */
+
+document.getElementById(
+    "savePinButton"
+).addEventListener(
+    "click",
+    function() {
+
+        const name =
+            document.getElementById(
+                "pinName"
+            ).value.trim();
+
+
+        const description =
+            document.getElementById(
+                "pinDescription"
+            ).value.trim();
+
+
+        const colour =
+            document.getElementById(
+                "pinColour"
+            ).value;
+
+
+        let group =
+            document.getElementById(
+                "pinGroup"
+            ).value;
+
+
+        /*
+         * If the user typed a new group,
+         * create it NOW and immediately
+         * assign the pin to it.
+         */
+
+        const typedGroup =
+            document.getElementById(
+                "newGroupName"
+            ).value.trim();
+
+
+        if (
+            typedGroup
+        ) {
+
+            group =
+                createGroupIfNeeded();
+
+        }
+
+
+        if (!name) {
+
+            alert(
+                "Please enter a pin name."
+            );
+
+            return;
+
+        }
+
+
+        /*
+         * EDIT
+         */
+
+        if (
+            editingPinId
+        ) {
+
+            const pin =
+                pins.find(
+                    p =>
+                        p.id
+                        === editingPinId
+                );
+
+
+            if (!pin) {
+                return;
+            }
+
+
+            pin.name =
+                name;
+
+            pin.description =
+                description;
+
+            pin.colour =
+                colour;
+
+            pin.shape =
+                selectedShape;
+
+            pin.group =
+                group;
+
+
+            saveColour(
+                colour
+            );
+
+            saveData();
+
+            rebuildPinOverlays();
+
+            renderPinsList();
+
+            closePinEditor();
+
+            return;
+
+        }
+
+
+        /*
+         * NEW PIN
+         */
+
+        if (
+            !pendingPinLocation
+        ) {
+
+            return;
+
+        }
+
+
+        const pin = {
+
+            id:
+                crypto.randomUUID
+                    ? crypto.randomUUID()
+                    : Date.now().toString(),
+
+            name:
+                name,
+
+            description:
+                description,
+
+            colour:
+                colour,
+
+            shape:
+                selectedShape,
+
+            group:
+                group,
+
+            x:
+                pendingPinLocation.x,
+
+            y:
+                pendingPinLocation.y,
+
+            hidden:
+                false
+
+        };
+
+
+        pins.push(
+            pin
+        );
+
+
+        saveColour(
+            colour
+        );
+
+        saveData();
+
+
+        displayPin(
+            pin
+        );
+
+        renderPinsList();
+
+        closePinEditor();
+
+    }
+);
+
+
+/* ============================================================
+   DELETE BUTTON IN EDITOR
+============================================================ */
+
+document.getElementById(
+    "deletePinButton"
+).addEventListener(
+    "click",
+    function() {
+
+        if (
+            !editingPinId
+        ) {
+            return;
+        }
+
+
+        const pin =
+            pins.find(
+                p =>
+                    p.id
+                    === editingPinId
+            );
+
+
+        if (!pin) {
+            return;
+        }
+
+
+        deletePin(
+            pin
+        );
+
+
+        closePinEditor();
+
+    }
+);
+
+
+/* ============================================================
+   CANCEL PIN EDITOR
+============================================================ */
+
+document.getElementById(
+    "cancelPinButton"
+).addEventListener(
+    "click",
+    function() {
+
+        closePinEditor();
+
+    }
+);
+
+
+/* ============================================================
+   RENDER PIN ICON
+============================================================ */
+
+/* ============================================================
+   RENDER PIN ICON (LIST)
+============================================================ */
+
+function createListIcon(pin) {
+
+    const SIZE = 20;
+    const OUTLINE = 2;
+
+    const wrapper =
+        document.createElement("div");
+
+    wrapper.style.width = SIZE + "px";
+    wrapper.style.height = SIZE + "px";
+    wrapper.style.position = "relative";
+    wrapper.style.flexShrink = "0";
+    wrapper.style.display = "flex";
+    wrapper.style.alignItems = "center";
+    wrapper.style.justifyContent = "center";
+
+
+    const colour =
+        pin.colour || "#e53935";
+
+    const outline =
+        getOutlineColour(colour);
+
+    const shape =
+        pin.shape || "circle";
+
+
+    /*
+     * CIRCLE + SQUARE
+     * Simple bordered divs.
+     */
+
+    if (shape === "circle" || shape === "square") {
+
+        const el =
+            document.createElement("div");
+
+        el.style.width = SIZE + "px";
+        el.style.height = SIZE + "px";
+        el.style.background = colour;
+        el.style.border =
+            OUTLINE + "px solid " + outline;
+        el.style.borderRadius =
+            shape === "circle" ? "50%" : "3px";
+
+        wrapper.appendChild(el);
+
+        return wrapper;
+
+    }
+
+
+    /*
+     * TRIANGLE
+     * CSS border trick, plus a slightly larger
+     * triangle behind it for the outline.
+     */
+
+    if (shape === "triangle") {
+
+        const half =
+            SIZE / 2;
+
+        /* Outline triangle (behind) */
+
+        const bg =
+            document.createElement("div");
+
+        bg.style.position = "absolute";
+        bg.style.left = "50%";
+        bg.style.top = "50%";
+        bg.style.width = "0";
+        bg.style.height = "0";
+        bg.style.borderLeft =
+            (half + OUTLINE) + "px solid transparent";
+        bg.style.borderRight =
+            (half + OUTLINE) + "px solid transparent";
+        bg.style.borderBottom =
+            (SIZE + OUTLINE * 2) + "px solid " + outline;
+        bg.style.transform =
+            "translate(-50%, -60%)";
+
+        /* Colour triangle (front) */
+
+        const fg =
+            document.createElement("div");
+
+        fg.style.position = "absolute";
+        fg.style.left = "50%";
+        fg.style.top = "50%";
+        fg.style.width = "0";
+        fg.style.height = "0";
+        fg.style.borderLeft =
+            half + "px solid transparent";
+        fg.style.borderRight =
+            half + "px solid transparent";
+        fg.style.borderBottom =
+            SIZE + "px solid " + colour;
+        fg.style.transform =
+            "translate(-50%, -60%)";
+
+        wrapper.appendChild(bg);
+        wrapper.appendChild(fg);
+
+        return wrapper;
+
+    }
+
+
+    /*
+     * STAR
+     * clip-path on two layered divs.
+     */
+
+    if (shape === "star") {
+
+        const clip =
+            "polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 95%, 50% 72%, 21% 95%, 32% 57%, 2% 35%, 39% 35%)";
+
+        /* Outline star (slightly bigger, behind) */
+
+        const bg =
+            document.createElement("div");
+
+        bg.style.position = "absolute";
+        bg.style.width = (SIZE + OUTLINE * 2) + "px";
+        bg.style.height = (SIZE + OUTLINE * 2) + "px";
+        bg.style.background = outline;
+        bg.style.clipPath = clip;
+
+        /* Colour star (front) */
+
+        const fg =
+            document.createElement("div");
+
+        fg.style.position = "absolute";
+        fg.style.width = SIZE + "px";
+        fg.style.height = SIZE + "px";
+        fg.style.background = colour;
+        fg.style.clipPath = clip;
+
+        wrapper.appendChild(bg);
+        wrapper.appendChild(fg);
+
+        return wrapper;
+
+    }
+	    /*
+     * RHOMBUS
+     * A rotated square. Outline via a slightly
+     * larger rotated square behind it.
+     */
+
+    if (shape === "rhombus") {
+
+        const inner = SIZE * 0.7;
+
+        const bg =
+            document.createElement("div");
+
+        bg.style.position = "absolute";
+        bg.style.width =
+            (inner + OUTLINE * 2) + "px";
+        bg.style.height =
+            (inner + OUTLINE * 2) + "px";
+        bg.style.background = outline;
+        bg.style.borderRadius = "2px";
+        bg.style.transform = "rotate(45deg)";
+
+        const fg =
+            document.createElement("div");
+
+        fg.style.position = "absolute";
+        fg.style.width = inner + "px";
+        fg.style.height = inner + "px";
+        fg.style.background = colour;
+        fg.style.borderRadius = "2px";
+        fg.style.transform = "rotate(45deg)";
+
+        wrapper.appendChild(bg);
+        wrapper.appendChild(fg);
+
+        return wrapper;
+
+    }
+
+
+    /*
+     * CROSS (X)
+     * Two-layer clip-path, same trick as star.
+     */
+
+    if (shape === "cross") {
+
+        const clip =
+            "polygon(20% 0%, 50% 30%, 80% 0%, 100% 20%, 70% 50%, 100% 80%, 80% 100%, 50% 70%, 20% 100%, 0% 80%, 30% 50%, 0% 20%)";
+
+        const bg =
+            document.createElement("div");
+
+        bg.style.position = "absolute";
+        bg.style.width = (SIZE + OUTLINE * 2) + "px";
+        bg.style.height = (SIZE + OUTLINE * 2) + "px";
+        bg.style.background = outline;
+        bg.style.clipPath = clip;
+
+        const fg =
+            document.createElement("div");
+
+        fg.style.position = "absolute";
+        fg.style.width = SIZE + "px";
+        fg.style.height = SIZE + "px";
+        fg.style.background = colour;
+        fg.style.clipPath = clip;
+
+        wrapper.appendChild(bg);
+        wrapper.appendChild(fg);
+
+        return wrapper;
+
+    }
+
+
+    /*
+     * HEART
+     * Uses clip-path polygon (portable across
+     * browsers) instead of path() so it works
+     * everywhere.
+     */
+
+    if (shape === "heart") {
+
+        const clip =
+            "polygon(50% 100%, 15% 65%, 0% 40%, 0% 22%, 12% 8%, 28% 8%, 42% 22%, 50% 34%, 58% 22%, 72% 8%, 88% 8%, 100% 22%, 100% 40%, 85% 65%)";
+
+        const bg =
+            document.createElement("div");
+
+        bg.style.position = "absolute";
+        bg.style.width = (SIZE + OUTLINE * 2) + "px";
+        bg.style.height = (SIZE + OUTLINE * 2) + "px";
+        bg.style.background = outline;
+        bg.style.clipPath = clip;
+
+        const fg =
+            document.createElement("div");
+
+        fg.style.position = "absolute";
+        fg.style.width = SIZE + "px";
+        fg.style.height = SIZE + "px";
+        fg.style.background = colour;
+        fg.style.clipPath = clip;
+
+        wrapper.appendChild(bg);
+        wrapper.appendChild(fg);
+
+        return wrapper;
+
+    }
+
+
+    /*
+     * SHIELD
+     * Two-layer clip-path.
+     */
+
+    if (shape === "shield") {
+
+        const clip =
+            "polygon(50% 0%, 100% 12%, 100% 55%, 50% 100%, 0% 55%, 0% 12%)";
+
+        const bg =
+            document.createElement("div");
+
+        bg.style.position = "absolute";
+        bg.style.width = (SIZE + OUTLINE * 2) + "px";
+        bg.style.height = (SIZE + OUTLINE * 2) + "px";
+        bg.style.background = outline;
+        bg.style.clipPath = clip;
+
+        const fg =
+            document.createElement("div");
+
+        fg.style.position = "absolute";
+        fg.style.width = SIZE + "px";
+        fg.style.height = SIZE + "px";
+        fg.style.background = colour;
+        fg.style.clipPath = clip;
+
+        wrapper.appendChild(bg);
+        wrapper.appendChild(fg);
+
+        return wrapper;
+
+    }
+
+    /*
+     * Fallback: circle.
+     */
+
+    const fallback =
+        document.createElement("div");
+
+    fallback.style.width = SIZE + "px";
+    fallback.style.height = SIZE + "px";
+    fallback.style.background = colour;
+    fallback.style.border =
+        OUTLINE + "px solid " + outline;
+    fallback.style.borderRadius = "50%";
+
+    wrapper.appendChild(fallback);
+
+    return wrapper;
+
+}
+
+
+/* ============================================================
+   RENDER PIN LIST
+============================================================ */
+
+function renderPinsList() {
+
+    const container =
+        document.getElementById(
+            "pinsList"
+        );
+
+
+    container.innerHTML = "";
+
+
+    /*
+     * Build groups in stored order.
+     */
+
+    groups.forEach(
+        function(groupName) {
+
+            addGroupToList(
+                container,
+                groupName
+            );
+
+        }
+    );
+
+
+    /*
+     * Ungrouped always comes last.
+     */
+
+    addGroupToList(
+        container,
+        "",
+        true
+    );
+
+
+    /*
+     * Ensure drag/drop handlers exist.
+     */
+
+    setupDropZones();
+
+}
+
+
+/* ============================================================
+   ADD GROUP
+============================================================ */
+
+function addGroupToList(
+    container,
+    groupName,
+    isUngrouped = false
+) {
+
+    const group =
+        document.createElement(
+            "div"
+        );
+
+    group.className =
+        "pin-group";
+
+
+    group.dataset.group =
+        groupName;
+
+
+    /*
+     * HEADER
+     */
+
+    const header =
+        document.createElement(
+            "div"
+        );
+
+    header.className =
+        "pin-group-header";
+
+    header.draggable =
+        !isUngrouped;
+
+
+    /*
+     * Drag handle
+     */
+
+    if (
+        !isUngrouped
+    ) {
+
+        const drag =
+            document.createElement(
+                "span"
+            );
+
+        drag.className =
+            "group-drag-handle";
+
+        drag.textContent =
+            "☷";
+
+        drag.title =
+            "Drag group";
+
+        header.appendChild(
+            drag
+        );
+
+    }
+
+
+    /*
+     * Group name
+     */
+
+    const name =
+        document.createElement(
+            "button"
+        );
+
+    name.className =
+        "group-name-button";
+
+    name.textContent =
+        isUngrouped
+            ? "Ungrouped"
+            : groupName;
+
+
+    header.appendChild(
+        name
+    );
+
+
+    /*
+     * Visibility
+     */
+
+    const eye =
+        document.createElement(
+            "button"
+        );
+
+    eye.className =
+        "small-action";
+
+    eye.textContent =
+        groupIsVisible(
+            groupName
+        )
+            ? "◉"
+            : "⊘";
+
+    eye.title =
+        "Toggle visibility";
+
+
+    eye.addEventListener(
+        "click",
+        function(event) {
+
+            event.stopPropagation();
+
+            if (
+                isUngrouped
+            ) {
+
+                toggleUngroupedVisibility();
+
+            } else {
+
+                toggleGroupVisibility(
+                    groupName
+                );
+
+            }
+
+        }
+    );
+
+
+    header.appendChild(
+        eye
+    );
+
+
+    /*
+     * EDIT
+     */
+
+    const edit =
+        document.createElement(
+            "button"
+        );
+
+    edit.className =
+        "small-action";
+
+    edit.textContent =
+        "✎";
+
+    edit.title =
+        "Rename group";
+
+
+    edit.style.display =
+        isUngrouped
+            ? "none"
+            : "flex";
+
+
+    edit.addEventListener(
+        "click",
+        function(event) {
+
+            event.stopPropagation();
+
+            openGroupDialog(
+                groupName
+            );
+
+        }
+    );
+
+
+    header.appendChild(
+        edit
+    );
+
+
+    /*
+     * DELETE
+     */
+
+    const deleteButton =
+        document.createElement(
+            "button"
+        );
+
+    deleteButton.className =
+        "small-action delete-button";
+
+    deleteButton.textContent =
+        "×";
+
+    deleteButton.title =
+        isUngrouped
+            ? "Ungrouped cannot be deleted"
+            : "Delete group";
+
+
+    deleteButton.style.display =
+        isUngrouped
+            ? "none"
+            : "flex";
+
+
+    deleteButton.addEventListener(
+        "click",
+        function(event) {
+
+            event.stopPropagation();
+
+            deleteGroup(
+                groupName
+            );
+
+        }
+    );
+
+
+    header.appendChild(
+        deleteButton
+    );
+
+
+    /*
+     * CONTENT
+     */
+
+    const content =
+        document.createElement(
+            "div"
+        );
+
+    content.className =
+        "pin-group-content";
+
+
+    content.dataset.group =
+        groupName;
+
+
+    /*
+     * Collapse by clicking group name.
+     */
+
+    name.addEventListener(
+        "click",
+        function() {
+
+            content.classList.toggle(
+                "collapsed"
+            );
+
+        }
+    );
+
+
+    /*
+     * Pins belonging to group.
+     */
+
+    const groupPins =
+        pins.filter(
+            pin =>
+                pin.group
+                === groupName
+        );
+
+
+    groupPins.forEach(
+        function(pin) {
+
+            addPinToGroupList(
+                content,
+                pin
+            );
+
+        }
+    );
+
+
+    /*
+     * Empty group placeholder.
+     */
+
+    if (
+        groupPins.length === 0
+    ) {
+
+        const empty =
+            document.createElement(
+                "div"
+            );
+
+        empty.className =
+            "empty-group";
+
+        empty.textContent =
+            "Empty group — drag pins here";
+
+        content.appendChild(
+            empty
+        );
+
+    }
+
+
+    group.appendChild(
+        header
+    );
+
+    group.appendChild(
+        content
+    );
+
+
+    container.appendChild(
+        group
+    );
+
+
+    /*
+     * Group drag events
+     */
+
+    if (
+        !isUngrouped
+    ) {
+
+        header.addEventListener(
+            "dragstart",
+            function(event) {
+
+                event.stopPropagation();
+
+                header.classList.add(
+                    "dragging-group"
+                );
+
+                event.dataTransfer.effectAllowed =
+                    "move";
+
+                event.dataTransfer.setData(
+                    "text/group",
+                    groupName
+                );
+
+            }
+        );
+
+
+        header.addEventListener(
+            "dragend",
+            function() {
+
+                header.classList.remove(
+                    "dragging-group"
+                );
+
+                document
+                    .querySelectorAll(
+                        ".pin-group"
+                    )
+                    .forEach(
+                        g =>
+                            g.classList.remove(
+                                "drag-over"
+                            )
+                    );
+
+                saveData();
+
+            }
+        );
+
+
+        group.addEventListener(
+            "dragover",
+            function(event) {
+
+                /*
+                 * If this is a pin, allow it.
+                 * If it is a group, don't allow
+                 * dropping on itself.
+                 */
+
+                if (
+                    event.dataTransfer.types
+                        .includes(
+                            "text/pin"
+                        )
+                ) {
+
+                    event.preventDefault();
+
+                    content.classList.add(
+                        "drag-over"
+                    );
+
+                }
+
+            }
+        );
+
+
+        group.addEventListener(
+            "dragleave",
+            function() {
+
+                content.classList.remove(
+                    "drag-over"
+                );
+
+            }
+        );
+
+
+        group.addEventListener(
+            "drop",
+            function(event) {
+
+                event.preventDefault();
+
+                content.classList.remove(
+                    "drag-over"
+                );
+
+
+                const pinId =
+                    event.dataTransfer.getData(
+                        "text/pin"
+                    );
+
+
+                if (
+                    pinId
+                ) {
+
+                    movePinToGroup(
+                        pinId,
+                        groupName
+                    );
+
+                }
+
+            }
+        );
+
+    }
+
+}
+
+
+/* ============================================================
+   ADD PIN TO LIST
+============================================================ */
+
+function addPinToGroupList(
+    container,
+    pin
+) {
+
+    const row =
+        document.createElement(
+            "div"
+        );
+
+    row.className =
+        "pin-list-item";
+
+
+    row.draggable =
+        true;
+
+
+    row.dataset.pinId =
+        pin.id;
+
+
+    /*
+     * DRAG HANDLE
+     */
+
+    const dragHandle =
+        document.createElement(
+            "span"
+        );
+
+    dragHandle.className =
+        "pin-drag-handle";
+
+    dragHandle.textContent =
+        "⋮⋮";
+
+    row.appendChild(
+        dragHandle
+    );
+
+
+    /*
+     * ICON = EDIT
+     */
+
+    const iconButton =
+        document.createElement(
+            "button"
+        );
+
+    iconButton.className =
+        "pin-list-icon";
+
+    iconButton.title =
+        "Edit pin";
+
+    iconButton.appendChild(
+        createListIcon(
+            pin
+        )
+    );
+
+
+    iconButton.addEventListener(
+        "click",
+        function(event) {
+
+            event.stopPropagation();
+
+            openPinEditor(
+                pin
+            );
+
+        }
+    );
+
+
+    row.appendChild(
+        iconButton
+    );
+
+
+    /*
+     * NAME = NAVIGATE
+     */
+
+    const nameButton =
+        document.createElement(
+            "button"
+        );
+
+    nameButton.className =
+        "pin-list-name";
+
+    nameButton.textContent =
+        pin.name;
+
+    nameButton.title =
+        pin.description
+            ? `${pin.name}\n\n${pin.description}`
+            : pin.name;
+
+
+    nameButton.addEventListener(
+        "click",
+        function(event) {
+
+            event.stopPropagation();
+
+            navigateToPin(
+                pin
+            );
+
+        }
+    );
+
+
+    row.appendChild(
+        nameButton
+    );
+
+
+    /*
+     * VISIBILITY
+     */
+
+    const eye =
+        document.createElement(
+            "button"
+        );
+
+    eye.className =
+        "small-action";
+
+    eye.textContent =
+        pin.hidden
+            ? "⊘"
+            : "◉";
+
+    eye.title =
+        "Toggle visibility";
+
+
+    eye.addEventListener(
+        "click",
+        function(event) {
+
+            event.stopPropagation();
+
+            togglePinVisibility(
+                pin
+            );
+
+        }
+    );
+
+
+    row.appendChild(
+        eye
+    );
+
+
+    /*
+     * EDIT
+     */
+
+    const edit =
+        document.createElement(
+            "button"
+        );
+
+    edit.className =
+        "small-action";
+
+    edit.textContent =
+        "✎";
+
+    edit.title =
+        "Edit pin";
+
+
+    edit.addEventListener(
+        "click",
+        function(event) {
+
+            event.stopPropagation();
+
+            openPinEditor(
+                pin
+            );
+
+        }
+    );
+
+
+    row.appendChild(
+        edit
+    );
+
+
+    /*
+     * DELETE
+     */
+
+    const deleteButton =
+        document.createElement(
+            "button"
+        );
+
+    deleteButton.className =
+        "small-action delete-button";
+
+    deleteButton.textContent =
+        "×";
+
+    deleteButton.title =
+        "Delete pin";
+
+
+    deleteButton.addEventListener(
+        "click",
+        function(event) {
+
+            event.stopPropagation();
+
+            deletePin(
+                pin
+            );
+
+        }
+    );
+
+
+    row.appendChild(
+        deleteButton
+    );
+
+
+    /*
+     * DRAG PIN
+     */
+
+    row.addEventListener(
+        "dragstart",
+        function(event) {
+
+            event.stopPropagation();
+
+            row.classList.add(
+                "dragging-pin"
+            );
+
+            event.dataTransfer.effectAllowed =
+                "move";
+
+            event.dataTransfer.setData(
+                "text/pin",
+                pin.id
+            );
+
+        }
+    );
+
+
+    row.addEventListener(
+        "dragend",
+        function() {
+
+            row.classList.remove(
+                "dragging-pin"
+            );
+
+            document
+                .querySelectorAll(
+                    ".pin-group-content"
+                )
+                .forEach(
+                    content =>
+                        content.classList.remove(
+                            "drag-over"
+                        )
+                );
+
+        }
+    );
+
+
+    container.appendChild(
+        row
+    );
+
+}
+
+
+/* ============================================================
+   DRAG/DROP SETUP
+============================================================ */
+
+function setupDropZones() {
+
+    document
+        .querySelectorAll(
+            ".pin-group-content"
+        )
+        .forEach(
+            function(content) {
+
+                content.addEventListener(
+                    "dragover",
+                    function(event) {
+
+                        if (
+                            event.dataTransfer.types
+                                .includes(
+                                    "text/pin"
+                                )
+                        ) {
+
+                            event.preventDefault();
+
+                            content.classList.add(
+                                "drag-over"
+                            );
+
+                        }
+
+                    }
+                );
+
+
+                content.addEventListener(
+                    "dragleave",
+                    function() {
+
+                        content.classList.remove(
+                            "drag-over"
+                        );
+
+                    }
+                );
+
+
+                content.addEventListener(
+                    "drop",
+                    function(event) {
+
+                        event.preventDefault();
+
+                        const pinId =
+                            event.dataTransfer.getData(
+                                "text/pin"
+                            );
+
+
+                        if (
+                            !pinId
+                        ) {
+                            return;
+                        }
+
+
+                        const groupName =
+                            content.dataset.group;
+
+
+                        movePinToGroup(
+                            pinId,
+                            groupName
+                        );
+
+                    }
+                );
+
+            }
+        );
+
+
+    /*
+     * Group reordering.
+     */
+
+    document
+        .querySelectorAll(
+            ".pin-group"
+        )
+        .forEach(
+            function(groupElement) {
+
+                groupElement.addEventListener(
+                    "dragover",
+                    function(event) {
+
+                        if (
+                            event.dataTransfer.types
+                                .includes(
+                                    "text/group"
+                                )
+                        ) {
+
+                            event.preventDefault();
+
+                            groupElement.style
+                                .outline =
+                                "1px dashed #888";
+
+                        }
+
+                    }
+                );
+
+
+                groupElement.addEventListener(
+                    "dragleave",
+                    function() {
+
+                        groupElement.style
+                            .outline =
+                            "";
+
+                    }
+                );
+
+
+                groupElement.addEventListener(
+                    "drop",
+                    function(event) {
+
+                        const draggedGroup =
+                            event.dataTransfer.getData(
+                                "text/group"
+                            );
+
+
+                        if (
+                            !draggedGroup
+                        ) {
+                            return;
+                        }
+
+
+                        event.preventDefault();
+
+
+                        groupElement.style
+                            .outline =
+                            "";
+
+
+                        const targetGroup =
+                            groupElement.dataset.group;
+
+
+                        if (
+                            !targetGroup ||
+                            draggedGroup
+                            === targetGroup
+                        ) {
+
+                            return;
+
+                        }
+
+
+                        reorderGroup(
+                            draggedGroup,
+                            targetGroup
+                        );
+
+                    }
+                );
+
+            }
+        );
+
+}
+
+
+/* ============================================================
+   MOVE PIN TO GROUP
+============================================================ */
+
+function movePinToGroup(
+    pinId,
+    groupName
+) {
+
+    const pin =
+        pins.find(
+            p =>
+                p.id
+                === pinId
+        );
+
+
+    if (!pin) {
+        return;
+    }
+
+
+    pin.group =
+        groupName;
+
+
+    saveData();
+
+    renderPinsList();
+
+}
+
+
+/* ============================================================
+   REORDER GROUP
+============================================================ */
+
+function reorderGroup(
+    draggedGroup,
+    targetGroup
+) {
+
+    const fromIndex =
+        groups.indexOf(
+            draggedGroup
+        );
+
+
+    const toIndex =
+        groups.indexOf(
+            targetGroup
+        );
+
+
+    if (
+        fromIndex < 0 ||
+        toIndex < 0
+    ) {
+
+        return;
+
+    }
+
+
+    groups.splice(
+        fromIndex,
+        1
+    );
+
+
+    groups.splice(
+        toIndex,
+        0,
+        draggedGroup
+    );
+
+
+    saveData();
+
+    renderPinsList();
+
+}
+
+
+/* ============================================================
+   UNGROUPED VISIBILITY
+============================================================ */
+
+function toggleUngroupedVisibility() {
+
+    const ungrouped =
+        pins.filter(
+            pin =>
+                !pin.group
+        );
+
+
+    if (
+        !ungrouped.length
+    ) {
+        return;
+    }
+
+
+    const currentlyVisible =
+        ungrouped.some(
+            pin =>
+                !pin.hidden
+        );
+
+
+    ungrouped.forEach(
+        function(pin) {
+
+            pin.hidden =
+                currentlyVisible;
+
+
+            const element =
+                document.querySelector(
+                    `.map-pin[data-pin-id="${pin.id}"]`
+                );
+
+
+            if (element) {
+
+                element.style.display =
+                    pin.hidden
+                        ? "none"
+                        : "";
+
+            }
+
+        }
+    );
+
+
+    saveData();
+
+    renderPinsList();
+
+}
+
+
+/* ============================================================
+   NAVIGATE TO PIN
+============================================================ */
+
+function navigateToPin(
+    pin
+) {
+
+    const target =
+        new OpenSeadragon.Point(
+            pin.x,
+            pin.y
+        );
+
+
+    const currentZoom =
+        viewer.viewport.getZoom();
+
+
+    const targetZoom =
+        Math.max(
+            currentZoom,
+            viewer.viewport.imageToViewportZoom(
+                0.75
+            )
+        );
+
+
+    viewer.viewport.panTo(
+        target,
+        false
+    );
+
+
+    viewer.viewport.zoomTo(
+        targetZoom,
+        false
+    );
+
+
+    document
+        .getElementById(
+            "pinsPanel"
+        )
+        .classList.remove(
+            "open"
+        );
+
+}
+
+
+/* ============================================================
+   TOOLTIP
+============================================================ */
+
+function showPinTooltip(
+    pin,
+    event
+) {
+
+    document.getElementById(
+        "pinTooltipName"
+    ).textContent =
+        pin.name;
+
+
+    document.getElementById(
+        "pinTooltipDescription"
+    ).textContent =
+        pin.description || "";
+
+
+    document.getElementById(
+        "pinTooltip"
+    ).style.display =
+        "block";
+
+
+    movePinTooltip(
+        event
+    );
+
+}
+
+
+function movePinTooltip(
+    event
+) {
+
+    const original =
+        event.originalEvent
+            || event;
+
+
+    const tooltip =
+        document.getElementById(
+            "pinTooltip"
+        );
+
+
+    tooltip.style.left =
+        original.clientX
+        + 14
+        + "px";
+
+
+    tooltip.style.top =
+        original.clientY
+        + 14
+        + "px";
+
+}
+
+
+function hidePinTooltip() {
+
+    document.getElementById(
+        "pinTooltip"
+    ).style.display =
+        "none";
+
+}
+
+
+/* ============================================================
+   PIN OPACITY
+============================================================ */
+
+function updatePinOpacity() {
+
+    const zoom =
+        viewer.viewport.getZoom();
+
+
+    const imageZoom =
+        viewer.viewport.viewportToImageZoom(
+            zoom
+        );
+
+
+    const opacity =
+        imageZoom >= 0.8
+            ? 0.5
+            : 1;
+
+
+    document
+        .querySelectorAll(
+            ".map-pin"
+        )
+        .forEach(
+            function(pin) {
+
+                pin.style.opacity =
+                    opacity;
+
+            }
+        );
+
+}
+
+
+viewer.addHandler(
+    "zoom",
+    updatePinOpacity
+);
+
+
+/* ============================================================
+   CLICK AND HOLD
+============================================================ */
+
+viewer.addHandler(
+    "canvas-press",
+    function(event) {
+
+        if (
+            event.originalTarget &&
+            event.originalTarget.closest &&
+            event.originalTarget.closest(
+                ".map-pin"
+            )
+        ) {
+
+            return;
+
+        }
+
+
+        holding = true;
+
+
+        holdStartX =
+            event.position.x;
+
+        holdStartY =
+            event.position.y;
+
+
+        holdTimer =
+            setTimeout(
+                function() {
+
+                    if (
+                        !holding
+                    ) {
+                        return;
+                    }
+
+
+                    const worldPoint =
+                        viewer.viewport
+                            .pointFromPixel(
+                                event.position
+                            );
+
+
+                    openPinEditor(
+                        null,
+                        event.position.x,
+                        event.position.y,
+                        worldPoint
+                    );
+
+
+                    holding = false;
+
+                },
+                600
+            );
+
+    }
+);
+
+
+/* ============================================================
+   CANCEL HOLD WHEN DRAGGING MAP
+============================================================ */
+
+viewer.addHandler(
+    "canvas-drag",
+    function(event) {
+
+        if (
+            !holding
+        ) {
+            return;
+        }
+
+
+        const dx =
+            Math.abs(
+                event.position.x
+                -
+                holdStartX
+            );
+
+
+        const dy =
+            Math.abs(
+                event.position.y
+                -
+                holdStartY
+            );
+
+
+        if (
+            dx > 10 ||
+            dy > 10
+        ) {
+
+            holding = false;
+
+            clearTimeout(
+                holdTimer
+            );
+
+        }
+
+    }
+);
+
+
+/* ============================================================
+   RELEASE
+============================================================ */
+
+viewer.addHandler(
+    "canvas-release",
+    function() {
+
+        holding = false;
+
+        clearTimeout(
+            holdTimer
+        );
+
+    }
+);
+
+
+/* ============================================================
+   PINS BUTTON
+============================================================ */
+
+document.getElementById(
+    "pinsButton"
+).addEventListener(
+    "click",
+    function() {
+
+        document
+            .getElementById(
+                "pinsPanel"
+            )
+            .classList.toggle(
+                "open"
+            );
+
+    }
+);
+
+
+/* ============================================================
+   ESC
+============================================================ */
+
+document.addEventListener(
+    "keydown",
+    function(event) {
+
+        if (
+            event.key
+            === "Escape"
+        ) {
+
+            closePinEditor();
+
+            closeGroupDialog();
+
+            document
+                .getElementById(
+                    "pinsPanel"
+                )
+                .classList.remove(
+                    "open"
+                );
+
+            hidePinTooltip();
+
+        }
+
+    }
+);
+
+
+/* ============================================================
+   INITIALISE
+============================================================ */
+
+viewer.addHandler(
+    "open",
+    function() {
+
+        saveData();
+
+        renderSavedColours();
+
+        renderPinsList();
+
+        rebuildPinOverlays();
+
+        updatePinOpacity();
+
+    }
+);
+
+</script>
 
 </body>
 

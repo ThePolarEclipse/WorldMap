@@ -20,6 +20,15 @@ SOURCE = Path("source")
 UPDATE = Path("update")
 OUTPUT = Path("generated")
 
+import time
+
+def write_version_stamp():
+    """
+    Write a version stamp so the viewer can cache-bust tiles.
+    Any change to this value forces the browser to refetch tiles.
+    """
+    stamp = str(int(time.time() * 1000))
+    (OUTPUT / "version.txt").write_text(stamp, encoding="utf-8")
 # ============================================================
 # WORLD SIZE
 # ============================================================
@@ -449,7 +458,7 @@ def hard_run():
             print(
                 f"  {ty + 1}/{tiles_y} rows complete"
             )
-
+    write_version_stamp()
     create_dzi()
 
     print()
@@ -715,7 +724,7 @@ def update_run():
         if file.exists():
 
             file.unlink()
-
+    write_version_stamp()
     create_dzi()
 
     print()
@@ -743,3 +752,4 @@ if __name__ == "__main__":
     else:
 
         update_run()
+        
