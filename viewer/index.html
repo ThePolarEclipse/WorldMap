@@ -205,7 +205,7 @@ select {
 
     display: flex;
 
-    align-items: center;
+    align-items: baseline;
 
     gap: 5px;
 
@@ -1229,6 +1229,94 @@ select {
     opacity: .5;
 }
 
+/* ============================================================
+   PIN PLACEMENT MODE
+============================================================ */
+
+.pin-placement-active #viewer {
+    cursor: crosshair;
+}
+
+#pinPlacementBanner {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5000;
+    background: rgba(20, 20, 20, 0.95);
+    color: white;
+    padding: 10px 24px;
+    border-radius: 30px;
+    border: 1px solid #4caf50;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+    display: none;
+    align-items: center;
+    gap: 14px;
+    font-size: 15px;
+    font-weight: bold;
+    pointer-events: none;
+}
+
+#pinPlacementBanner.open {
+    display: flex;
+}
+
+#pinPlacementBanner .cancel-cross {
+    pointer-events: auto;
+    background: #c62828;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 26px;
+    height: 26px;
+    font-size: 16px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+#pinPlacementBanner .cancel-cross:hover {
+    background: #e53935;
+}
+
+.pin-placement-crosshair {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    margin-left: -12px;
+    margin-top: -12px;
+    pointer-events: none;
+    z-index: 4500;
+    display: none;
+}
+
+.pin-placement-crosshair::before,
+.pin-placement-crosshair::after {
+    content: "";
+    position: absolute;
+    background: #4caf50;
+    box-shadow: 0 0 4px rgba(0,0,0,0.8);
+}
+
+.pin-placement-crosshair::before {
+    left: 50%;
+    top: 0;
+    width: 2px;
+    height: 100%;
+    margin-left: -1px;
+}
+
+.pin-placement-crosshair::after {
+    top: 50%;
+    left: 0;
+    height: 2px;
+    width: 100%;
+    margin-top: -1px;
+}
+
 </style>
 
 </head>
@@ -1479,6 +1567,17 @@ select {
 
 </div>
 
+<!-- =========================================================
+     PIN PLACEMENT BANNER
+========================================================= -->
+
+<div id="pinPlacementBanner">
+    <span>Drop a pin to save it.</span>
+    <button class="cancel-cross" title="Cancel placement">✕</button>
+</div>
+
+<div class="pin-placement-crosshair" id="pinPlacementCrosshair"></div>
+
 
 <script>
 
@@ -1506,7 +1605,9 @@ const viewer = OpenSeadragon({
 
     visibilityRatio: 0.8,
 
-    constrainDuringPan: false
+    constrainDuringPan: false,
+	
+	wrapHorizontal: true
 
 });
 
@@ -1818,6 +1919,9 @@ let holdStartX = 0;
 
 let holdStartY = 0;
 
+/* New placement state */
+let placementMode = false;
+let placementGroup = null;
 
 /* ============================================================
    SAVE DATA
@@ -2845,7 +2949,8 @@ function openPinEditor(
     pin = null,
     screenX = null,
     screenY = null,
-    worldPoint = null
+    worldPoint = null,
+    prefillGroup = null
 ) {
 
     editingPinId =
@@ -2912,11 +3017,9 @@ function openPinEditor(
         );
 
 
-    refreshGroupSelector(
-        pin
-            ? pin.group
-            : ""
-    );
+    /* Use prefillGroup for new pins if provided, otherwise use pin group or empty */
+    const groupToUse = pin ? pin.group : (prefillGroup || "");
+    refreshGroupSelector(groupToUse);
 
 
     document.getElementById(
@@ -3906,6 +4009,53 @@ function addGroupToList(
 
     header.appendChild(
         name
+    );
+
+
+    /*
+     * ADD PIN BUTTON (green +)
+     */
+
+    const addPinButton =
+        document.createElement(
+            "button"
+        );
+
+    addPinButton.className =
+        "small-action add-pin-button";
+
+    addPinButton.textContent =
+        "＋";
+
+    addPinButton.title =
+        "Add pin to this group";
+
+    addPinButton.style.color =
+        "#4caf50";
+
+    addPinButton.style.fontWeight =
+        "bold";
+
+    addPinButton.style.fontSize =
+        "18px";
+
+
+    addPinButton.addEventListener(
+        "click",
+        function(event) {
+
+            event.stopPropagation();
+
+            startPlacementMode(
+                groupName
+            );
+
+        }
+    );
+
+
+    header.appendChild(
+        addPinButton
     );
 
 
@@ -5075,137 +5225,83 @@ viewer.addHandler(
 
 
 /* ============================================================
-   CLICK AND HOLD
+   PLACEMENT MODE
 ============================================================ */
 
-viewer.addHandler(
-    "canvas-press",
-    function(event) {
+function startPlacementMode(groupName) {
 
-        if (
-            event.originalTarget &&
-            event.originalTarget.closest &&
-            event.originalTarget.closest(
-                ".map-pin"
-            )
-        ) {
-
-            return;
-
-        }
-
-
-        holding = true;
-
-
-        holdStartX =
-            event.position.x;
-
-        holdStartY =
-            event.position.y;
-
-
-        holdTimer =
-            setTimeout(
-                function() {
-
-                    if (
-                        !holding
-                    ) {
-                        return;
-                    }
-
-
-                    const worldPoint =
-                        viewer.viewport
-                            .pointFromPixel(
-                                event.position
-                            );
-
-
-                    openPinEditor(
-                        null,
-                        event.position.x,
-                        event.position.y,
-                        worldPoint
-                    );
-
-
-                    holding = false;
-
-                },
-                600
-            );
-
+    /* If already in placement mode, cancel first */
+    if (placementMode) {
+        cancelPlacementMode();
     }
-);
 
+    placementMode = true;
+    placementGroup = groupName;
 
-/* ============================================================
-   CANCEL HOLD WHEN DRAGGING MAP
-============================================================ */
+    document.body.classList.add("pin-placement-active");
 
-viewer.addHandler(
-    "canvas-drag",
-    function(event) {
+    document.getElementById("pinPlacementBanner").classList.add("open");
 
-        if (
-            !holding
-        ) {
-            return;
-        }
+    document.getElementById("pinsPanel").classList.remove("open");
 
+    /* Show crosshair marker */
+    const crosshair = document.getElementById("pinPlacementCrosshair");
+    crosshair.style.display = "block";
 
-        const dx =
-            Math.abs(
-                event.position.x
-                -
-                holdStartX
-            );
+    /* Track mouse for crosshair */
+    viewer.addHandler("canvas-move", onPlacementMove);
+    viewer.addHandler("canvas-press", onPlacementPress);
+}
 
+function cancelPlacementMode() {
+    placementMode = false;
+    placementGroup = null;
 
-        const dy =
-            Math.abs(
-                event.position.y
-                -
-                holdStartY
-            );
+    document.body.classList.remove("pin-placement-active");
 
+    document.getElementById("pinPlacementBanner").classList.remove("open");
 
-        if (
-            dx > 10 ||
-            dy > 10
-        ) {
+    const crosshair = document.getElementById("pinPlacementCrosshair");
+    crosshair.style.display = "none";
 
-            holding = false;
+    viewer.removeHandler("canvas-move", onPlacementMove);
+    viewer.removeHandler("canvas-press", onPlacementPress);
+}
 
-            clearTimeout(
-                holdTimer
-            );
+function onPlacementMove(event) {
+    if (!placementMode) return;
+    const crosshair = document.getElementById("pinPlacementCrosshair");
+    crosshair.style.left = event.position.x + "px";
+    crosshair.style.top = event.position.y + "px";
+}
 
-        }
+function onPlacementPress(event) {
+    if (!placementMode) return;
 
-    }
-);
+    /* Prevent map panning/zooming on this click */
+    event.preventDefaultAction = true;
 
+    /* Get world coordinates */
+    const worldPoint = viewer.viewport.pointFromPixel(event.position);
 
-/* ============================================================
-   RELEASE
-============================================================ */
+    /* Open editor with prefilled group */
+    openPinEditor(
+        null,
+        event.position.x,
+        event.position.y,
+        worldPoint,
+        placementGroup
+    );
 
-viewer.addHandler(
-    "canvas-release",
-    function() {
+    /* Exit placement mode */
+    cancelPlacementMode();
+}
 
-        holding = false;
-
-        clearTimeout(
-            holdTimer
-        );
-
-    }
-);
-
+/* Cancel button in banner */
+document.querySelector("#pinPlacementBanner .cancel-cross").addEventListener("click", function(event) {
+    event.stopPropagation();
+    cancelPlacementMode();
+});
 
 /* ============================================================
    PINS BUTTON
@@ -5245,6 +5341,10 @@ document.addEventListener(
             closePinEditor();
 
             closeGroupDialog();
+
+            if (placementMode) {
+                cancelPlacementMode();
+            }
 
             document
                 .getElementById(
